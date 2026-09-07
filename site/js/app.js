@@ -29,25 +29,35 @@ function canvasMap(id,regional=false){
  root.replaceChildren(canvas);
 }
 function drawMaps(){canvasMap('global-map');canvasMap('region-map',true);byId('global-count').textContent=fmt.format(d3.sum(state.data.cells.filter(c=>within(c[0])),c=>c[3]));byId('region-count').textContent=fmt.format(state.data.regional.filter(c=>within(c[0])).length);}
-function timeline(area,id){
- const root=byId(id),metric=byId('metric').value,width=root.clientWidth||byId('timeline').clientWidth;
+function timeline(){
+ const root=byId('timeline'),metric=byId('metric').value,width=root.clientWidth;
  const labels={events:'Gaps iniciados por mes',vessels:'Barcos distintos con gaps',medianHours:'Duración mediana (horas)'};
- const rows=state.data.monthly.filter(d=>d.area===area&&!d.partial).map(d=>({...d,date:new Date(d.month+'-01T00:00:00Z')}));
+ const complete=state.data.monthly.filter(d=>!d.partial).map(d=>({...d,date:new Date(d.month+'-01T00:00:00Z')}));
+ const rows=complete.filter(d=>d.area==='region'),globalRows=complete.filter(d=>d.area==='global');
+ // One constant power-of-ten divisor per count metric, calculated over the full series.
+ const ratio=(d3.max(globalRows,d=>d[metric])||1)/(d3.max(rows,d=>d[metric])||1);
+ const divisor=metric==='medianHours'?1:10**Math.max(0,Math.round(Math.log10(ratio)));
+ const globalLabel=divisor===1?'Global':'Global ÷ '+fmt.format(divisor);
+ byId('global-series-label').textContent=globalLabel;
+ byId('scale-note').textContent=divisor===1?'Las dos series usan la misma escala. El global incluye el recorte regional.':`Para comparar las curvas, dividimos el global por ${fmt.format(divisor)} en todos los meses. La serie regional conserva sus valores. Los valores globales originales aparecen al pasar por sus puntos. El global incluye el recorte regional.`;
  const rules=[{date:new Date('2020-01-01T00:00:00Z'),label:'Fin del período original\n2017–2019',color:'#6d7a81'},{date:new Date('2023-12-10T00:00:00Z'),label:'Asunción de Milei\n10 dic. 2023',color:'#9b5b29'}];
- const plot=Plot.plot({width,height:335,marginLeft:55,marginTop:58,marginRight:25,title:area==='global'?'Global · escala propia':'Atlántico sudoccidental',style:{fontFamily:'Montserrat, system-ui',fontSize:'12px'},
+ const plot=Plot.plot({width,height:335,marginLeft:55,marginTop:58,marginRight:25,style:{fontFamily:'Montserrat, system-ui',fontSize:'12px'},
  x:{type:'utc',label:null,ticks:width<600?'2 years':'1 year',tickFormat:'%Y',domain:[new Date('2017-01-01'),new Date('2026-09-01')]},
  y:{label:labels[metric],zero:true,grid:true},marks:[Plot.ruleY([0],{stroke:'#b4c3cc'}),
+ Plot.areaY(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,fill:'#b9bdc0',fillOpacity:.25}),
+ Plot.lineY(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,stroke:'#93999d',strokeWidth:1.5}),
+ Plot.dot(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,fill:'#93999d',r:2,title:d=>`${d.month} · Global: ${fmt.format(d[metric])}${divisor===1?'':` (en el gráfico: ${fmt.format(d[metric]/divisor)})}`}),
  ...rules.map(r=>Plot.ruleX([r.date],{stroke:r.color,strokeDasharray:'4,4'})),
  Plot.lineY(rows,{x:'date',y:metric,stroke:'#286b8b',strokeWidth:1.8}),
- Plot.dot(rows,{x:'date',y:metric,fill:'#286b8b',r:2.5,title:d=>`${d.month}: ${fmt.format(d[metric])}`}),
+ Plot.dot(rows,{x:'date',y:metric,fill:'#286b8b',r:2.5,title:d=>`${d.month} · Región: ${fmt.format(d[metric])}`}),
  ...rules.map(r=>Plot.text([r],{x:'date',text:'label',frameAnchor:'top',textAnchor:width<600?'middle':'start',dx:width<600?0:6,dy:-26,fontSize:width<600?9:11,fill:r.color,stroke:palette.paper,strokeWidth:3}))]});
  root.replaceChildren(plot);
 }
-function drawCharts(){timeline('region','timeline');if(byId('show-global').checked)timeline('global','global-timeline');}
+function drawCharts(){timeline();}
 function table(){const body=byId('monthly-table').querySelector('tbody');for(const r of state.data.monthly.filter(r=>r.area==='region'&&!r.partial)){const tr=document.createElement('tr');for(const value of [r.month,fmt.format(r.events),fmt.format(r.vessels),r.medianHours==null?'—':fmt.format(r.medianHours)]){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);}}
 async function start(){try{const responses=await Promise.all([fetch('data/site-data.json'),fetch('vendor/countries-50m.json')]);if(responses.some(r=>!r.ok))throw new Error('No se pudieron cargar los datos');const[data,world]=await Promise.all(responses.map(r=>r.json()));state.data=data;state.land=topojson.feature(world,world.objects.land);await document.fonts.ready;drawMaps();drawCharts();table();
 byId('period').addEventListener('change',e=>{const val=e.target.value;state.range=val==='all'?[2017,2026]:val.includes('-')?val.split('-').map(Number):[+val,+val];drawMaps();});
-byId('metric').addEventListener('change',drawCharts);byId('show-global').addEventListener('change',e=>{byId('global-timeline').hidden=!e.target.checked;drawCharts();});
+byId('metric').addEventListener('change',drawCharts);
 let timer;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{drawMaps();drawCharts();},150);});
 }catch(error){byId('error').hidden=false;byId('error').textContent='No pudimos cargar las visualizaciones. Revisá tu conexión y recargá la página. Los archivos de datos siguen disponibles al pie.';console.error(error);}}
 start();
