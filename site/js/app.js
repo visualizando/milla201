@@ -34,9 +34,8 @@ function timeline(){
  const labels={events:'Gaps iniciados por mes',vessels:'Barcos distintos con gaps',medianHours:'Duración mediana (horas)'};
  const complete=state.data.monthly.filter(d=>!d.partial).map(d=>({...d,date:new Date(d.month+'-01T00:00:00Z')}));
  const rows=complete.filter(d=>d.area==='region'),globalRows=complete.filter(d=>d.area==='global');
- // One constant power-of-ten divisor per count metric, calculated over the full series.
- const ratio=(d3.max(globalRows,d=>d[metric])||1)/(d3.max(rows,d=>d[metric])||1);
- const divisor=metric==='medianHours'?1:10**Math.max(0,Math.round(Math.log10(ratio)));
+ // Both series use their original values on the same axis.
+ const divisor=1;
  const globalLabel=divisor===1?'Global':'Global ÷ '+fmt.format(divisor);
  byId('global-series-label').textContent=globalLabel;
  byId('scale-note').textContent=divisor===1?'Las dos series usan la misma escala. El global incluye el recorte regional.':`Para comparar las curvas, dividimos el global por ${fmt.format(divisor)} en todos los meses. La serie regional conserva sus valores. Los valores globales originales aparecen al pasar por sus puntos. El global incluye el recorte regional.`;
