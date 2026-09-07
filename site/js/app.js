@@ -15,16 +15,16 @@ function canvasMap(id,regional=false){
  const ctx=canvas.getContext('2d');ctx.scale(ratio,ratio);
  const projection=regional?d3.geoMercator().fitExtent([[8,8],[width-8,height-8]],bbox):d3.geoEqualEarth().rotate([-10,0]).fitExtent([[10,8],[width-10,height-8]],{type:'Sphere'});
  const path=d3.geoPath(projection,ctx);
- ctx.fillStyle=regional?'#e1edf2':'#112d40';ctx.beginPath();path({type:'Sphere'});ctx.fill();
- ctx.strokeStyle=regional?'#c3d7e1':'#203d50';ctx.lineWidth=.5;ctx.beginPath();path(d3.geoGraticule10());ctx.stroke();
+ ctx.fillStyle='#d3e7fa';ctx.beginPath();path({type:'Sphere'});ctx.fill();
+
  // Aggregate in projected screen cells. Fixed color domain keeps periods comparable as counts.
  const bins=new Map(),size=regional?4:3;
  if(regional){for(const [year,lon,lat] of state.data.regional){if(!(state.regionYear===null||year===state.regionYear))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+1);}}
  else{for(const [year,lon,lat,n] of state.data.cells){if(!within(year))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+n);}}
- const color=d3.scaleLog().domain([1,5,25,100]).range(['#527fa9','#d88782','#f7825f','#ffdd76']).clamp(true);
+ const color=d3.scaleLog().domain([0.25,5,21,100]).range(['#d3e7fa','#5784c5','#fc004b','#ffec44']).clamp(true);
  for(const [key,n]of bins){const[x,y]=key.split(',').map(Number);ctx.fillStyle=color(n);ctx.fillRect(x*size,y*size,size+0.3,size+0.3);}
- ctx.fillStyle=regional?'#fcfdfd':'#284252';ctx.strokeStyle=regional?'#a8bdc9':'#425c6b';ctx.lineWidth=.6;ctx.beginPath();path(state.land);ctx.fill();ctx.stroke();
- if(!regional){ctx.strokeStyle='#f0bd7d';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();path(bbox);ctx.stroke();ctx.setLineDash([]);}
+ ctx.fillStyle='#ffffff';ctx.beginPath();path(state.land);ctx.fill();
+ if(!regional){ctx.strokeStyle='#5784c5';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();path(bbox);ctx.stroke();ctx.setLineDash([]);}
  else{ctx.fillStyle='#466575';ctx.font='12px Montserrat, system-ui';for(const[label,lon,lat]of[['ARGENTINA',-65,-41],['URUGUAY',-56,-33],['ATLÁNTICO SUR',-49,-46]]){const p=projection([lon,lat]);ctx.fillText(label,p[0],p[1]);}}
  root.replaceChildren(canvas);
 }
