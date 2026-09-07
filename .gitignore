@@ -1,0 +1,16 @@
+.secrets/*
+!.secrets/.gitkeep
+.env
+.env.*
+!.env.example
+data/raw/*
+!data/raw/README.md
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+work/
