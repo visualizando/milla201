@@ -4,7 +4,7 @@ const {d3,topojson,Plot}=window;
 const token=name=>getComputedStyle(document.documentElement).getPropertyValue('--color-'+name).trim();
 const palette={ink:token('primary'),mint:token('secondary'),paper:token('neutral'),surface:token('surface'),border:token('border')};
 const fmt=new Intl.NumberFormat('es-AR');
-const state={data:null,land:null,range:[2017,2026]};
+const state={data:null,land:null,range:[2017,2026],regionYear:2017,playing:false};
 const byId=id=>document.getElementById(id);
 const within=y=>y>=state.range[0]&&y<=state.range[1];
 const bbox={type:'Polygon',coordinates:[[[-70,-60],[-70,-30],[-40,-30],[-40,-60],[-70,-60]]]};
@@ -19,7 +19,7 @@ function canvasMap(id,regional=false){
  ctx.strokeStyle=regional?'#c3d7e1':'#203d50';ctx.lineWidth=.5;ctx.beginPath();path(d3.geoGraticule10());ctx.stroke();
  // Aggregate in projected screen cells. Fixed color domain keeps periods comparable as counts.
  const bins=new Map(),size=regional?4:3;
- if(regional){for(const [year,lon,lat] of state.data.regional){if(!within(year))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+1);}}
+ if(regional){for(const [year,lon,lat] of state.data.regional){if(!(state.regionYear===null||year===state.regionYear))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+1);}}
  else{for(const [year,lon,lat,n] of state.data.cells){if(!within(year))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+n);}}
  const color=d3.scaleLog().domain([1,5,25,100]).range(['#527fa9','#d88782','#f7825f','#ffdd76']).clamp(true);
  for(const [key,n]of bins){const[x,y]=key.split(',').map(Number);ctx.fillStyle=color(n);ctx.fillRect(x*size,y*size,size+0.3,size+0.3);}
@@ -28,7 +28,30 @@ function canvasMap(id,regional=false){
  else{ctx.fillStyle='#466575';ctx.font='12px Montserrat, system-ui';for(const[label,lon,lat]of[['ARGENTINA',-65,-41],['URUGUAY',-56,-33],['ATLÁNTICO SUR',-49,-46]]){const p=projection([lon,lat]);ctx.fillText(label,p[0],p[1]);}}
  root.replaceChildren(canvas);
 }
-function drawMaps(){canvasMap('global-map');canvasMap('region-map',true);byId('global-count').textContent=fmt.format(d3.sum(state.data.cells.filter(c=>within(c[0])),c=>c[3]));byId('region-count').textContent=fmt.format(state.data.regional.filter(c=>within(c[0])).length);}
+function drawMaps(){canvasMap('global-map');drawRegion();byId('global-count').textContent=fmt.format(d3.sum(state.data.cells.filter(c=>within(c[0])),c=>c[3]));}
+function drawRegion(){
+ canvasMap('region-map',true);
+ byId('region-count').textContent=fmt.format(state.data.regional.filter(c=>state.regionYear===null||c[0]===state.regionYear).length);
+ byId('region-year-label').textContent=state.regionYear===null?'2017–2026':state.regionYear===2026?'2026 · hasta el 3 de septiembre':String(state.regionYear);
+
+}
+let regionTimer;
+function setPlaying(play){
+ clearInterval(regionTimer);state.playing=play;
+ byId('region-play').textContent=play?'Pausar':'Reproducir';
+ byId('region-play').setAttribute('aria-pressed',String(play));
+ if(play){
+  if(state.regionYear===null){state.regionYear=2017;byId('region-year').value=2017;drawRegion();}
+  regionTimer=setInterval(()=>{state.regionYear=state.regionYear>=2026?2017:state.regionYear+1;byId('region-year').value=state.regionYear;drawRegion();},1500);
+ }
+}
+function setupRegionControls(){
+ byId('region-year').addEventListener('input',e=>{setPlaying(false);state.regionYear=+e.target.value;drawRegion();});
+ byId('region-play').addEventListener('click',()=>setPlaying(!state.playing));
+ byId('region-all').addEventListener('click',()=>{setPlaying(false);state.regionYear=null;drawRegion();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)setPlaying(false);});
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)setPlaying(true);
+}
 function timeline(){
  const root=byId('timeline'),metric=byId('metric').value,width=root.clientWidth;
  const labels={events:'Gaps iniciados por mes',vessels:'Barcos distintos con gaps',medianHours:'Duración mediana (horas)'};
@@ -54,7 +77,7 @@ function timeline(){
 }
 function drawCharts(){timeline();}
 function table(){const body=byId('monthly-table').querySelector('tbody');for(const r of state.data.monthly.filter(r=>r.area==='region'&&!r.partial)){const tr=document.createElement('tr');for(const value of [r.month,fmt.format(r.events),fmt.format(r.vessels),r.medianHours==null?'—':fmt.format(r.medianHours)]){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);}}
-async function start(){try{const responses=await Promise.all([fetch('data/site-data.json'),fetch('vendor/countries-50m.json')]);if(responses.some(r=>!r.ok))throw new Error('No se pudieron cargar los datos');const[data,world]=await Promise.all(responses.map(r=>r.json()));state.data=data;state.land=topojson.feature(world,world.objects.land);await document.fonts.ready;drawMaps();drawCharts();table();
+async function start(){try{const responses=await Promise.all([fetch('data/site-data.json'),fetch('vendor/countries-50m.json')]);if(responses.some(r=>!r.ok))throw new Error('No se pudieron cargar los datos');const[data,world]=await Promise.all(responses.map(r=>r.json()));state.data=data;state.land=topojson.feature(world,world.objects.land);await document.fonts.ready;drawMaps();drawCharts();table();setupRegionControls();
 byId('period').addEventListener('change',e=>{const val=e.target.value;state.range=val==='all'?[2017,2026]:val.includes('-')?val.split('-').map(Number):[+val,+val];drawMaps();});
 byId('metric').addEventListener('change',drawCharts);
 let timer;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{drawMaps();drawCharts();},150);});
