@@ -46,7 +46,7 @@ function timeline(){
  y:{label:labels[metric],zero:true,grid:true},marks:[Plot.ruleY([0],{stroke:'#b4c3cc'}),
  Plot.areaY(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,fill:'#b9bdc0',fillOpacity:.25}),
  Plot.lineY(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,stroke:'#93999d',strokeWidth:1.5}),
- Plot.dot(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,fill:'#93999d',r:2,title:d=>`${d.month} · Global: ${fmt.format(d[metric])}${divisor===1?'':` (en el gráfico: ${fmt.format(d[metric]/divisor)})}`}),
+ Plot.dot(globalRows,{x:'date',y:d=>d[metric]==null?null:d[metric]/divisor,fill:'#93999d',r:2,title:d=>d.month+' · Global: '+fmt.format(d[metric])+(divisor===1?'':' (en el gráfico: '+fmt.format(d[metric]/divisor)+')')}),
  ...rules.map(r=>Plot.ruleX([r.date],{stroke:r.color,strokeDasharray:'4,4'})),
  Plot.lineY(rows,{x:'date',y:metric,stroke:'#286b8b',strokeWidth:1.8}),
  Plot.dot(rows,{x:'date',y:metric,fill:'#286b8b',r:2.5,title:d=>`${d.month} · Región: ${fmt.format(d[metric])}`}),
