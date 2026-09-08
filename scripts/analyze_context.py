@@ -24,7 +24,7 @@ def hours_by_mmsi(rows):
   hours=float(row['hours'])
   if not math.isfinite(hours) or hours<0:raise ValueError('Invalid hours')
   mmsi=str(row.get('mmsi') or '').strip()
-  if not mmsi:raise ValueError('MMSI missing: cannot compute distinct fleet or overlap')
+  if not mmsi:continue  # Unknown identities are audited separately, never counted as one vessel.
   totals[mmsi]+=hours
  return dict(totals)
 
@@ -53,9 +53,9 @@ def main():
  grouped=defaultdict(list)
  for r in gaps:grouped[r['gap_start_timestamp'][:7]].append(r)
  months=[f'{y}-{m:02d}' for y in range(2017,2027) for m in range(1,13) if f'{y}-{m:02d}'<='2026-08']
- output=[];missing=[]
+ output=[];missing=[];stored={}
  for month in months:
-  reports={prod:load(prod,month) for prod in PRODUCTS}
+  reports={prod:load(prod,month) for prod in PRODUCTS};stored[month]=reports
   missing.extend(f'{prod}/{month}' for prod,rows in reports.items() if rows is None)
   def detections(prod):
    if reports[prod] is None:return None
@@ -63,10 +63,41 @@ def main():
    if any(not math.isfinite(v) or v<0 for v in values):raise ValueError('Invalid detections')
    return sum(values)
   output.append(summarize(month,grouped[month],hours_by_mmsi(reports['presence']),hours_by_mmsi(reports['effort']),detections('sar_all'),detections('sar_unmatched')))
+ # Audit anonymous hours and empty SAR returns explicitly.
+ for r in output:
+  reports=stored[r['month']]
+  for prod in ['presence','effort']:
+   records=reports[prod]
+   r[prod+'_hours_without_mmsi']=sum(float(x['hours']) for x in records if not x.get('mmsi')) if records is not None else None
+  r['presence_hours_total']=r['presence_hours']+r['presence_hours_without_mmsi'] if r['presence_hours'] is not None else None
+  r['apparent_fishing_hours_total']=r['apparent_fishing_hours']+r['effort_hours_without_mmsi'] if r['apparent_fishing_hours'] is not None else None
+  r['sar_status']='no_records_coverage_unknown' if reports['sar_all']==[] else 'reported' if reports['sar_all'] is not None else 'missing_report'
+  if r['sar_status']!='reported':
+   r['sar_detections']=None;r['sar_unmatched']=None;r['sar_unmatched_pct']=None
+ periods=[]
+ definitions=[(str(y),[f'{y}-{m:02d}' for m in range(1,13)]) for y in range(2017,2026)]
+ definitions += [(str(y)+'-Jan-Aug',[f'{y}-{m:02d}' for m in range(1,9)]) for y in range(2017,2027)]
+ definitions += [(str(y)+'-Jan-Jun',[f'{y}-{m:02d}' for m in range(1,7)]) for y in [2023,2024,2025,2026]]
+ for label,selection in definitions:
+  mr=[r for r in output if r['month'] in selection]
+  def merge(prod):
+   if any(stored[m][prod] is None for m in selection):return None
+   return hours_by_mmsi([x for m in selection for x in stored[m][prod]])
+  def total(field):
+   return sum(r[field] for r in mr) if all(r[field] is not None for r in mr) else None
+  pg=[x for m in selection for x in grouped[m]]
+  result=summarize(label,pg,merge('presence'),merge('effort'),total('sar_detections'),total('sar_unmatched'))
+  # Rate numerator must match the observed population in the SAME month.
+  result['gaps_in_observed_fleet']=total('gaps_in_observed_fleet')
+  result['gaps_per_1000_observed_vessel_days']=divide(result['gaps_in_observed_fleet'],result['presence_hours'],24000)
+  for key in ['presence_hours_without_mmsi','effort_hours_without_mmsi','presence_hours_total','apparent_fishing_hours_total']:result[key]=total(key)
+  periods.append(result)
  dest=ROOT/'data/processed';dest.mkdir(exist_ok=True)
  with (dest/'context-monthly.csv').open('w',encoding='utf-8',newline='') as f:
   writer=csv.DictWriter(f,fieldnames=list(output[0]));writer.writeheader();writer.writerows(output)
  (dest/'context-analysis.json').write_text(json.dumps({'status':'missing_reports' if missing else 'descriptive_reports_complete',
-  'missing_reports':missing,'monthly':output,'sar_coverage_status':'requires_processed_scene_footprints'},ensure_ascii=False,indent=2),encoding='utf-8')
+  'missing_reports':missing,'monthly':output,'periods':periods,'sar_coverage_status':'blocked_permission_403','sar_footprints_dataset':'public-global-sar-footprints:v20210924','bbox':[-70,-60,-40,-30],'snapshot':'2026-09-08'},ensure_ascii=False,indent=2),encoding='utf-8')
+ with (dest/'context-periods.csv').open('w',encoding='utf-8',newline='') as f:
+  writer=csv.DictWriter(f,fieldnames=list(periods[0]));writer.writeheader();writer.writerows(periods)
  print(f'Calculated {len(output)} monthly rows; {len(missing)} reports missing. No missing value replaced with zero.')
 if __name__=='__main__':main()

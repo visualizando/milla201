@@ -75,9 +75,22 @@ function timeline(){
  ...rules.map(r=>Plot.text([r],{x:'date',text:'label',frameAnchor:'top',textAnchor:width<600?'middle':'start',dx:width<600?0:6,dy:-26,fontSize:width<600?9:11,fill:r.color,stroke:palette.paper,strokeWidth:3}))]});
  root.replaceChildren(plot);
 }
-function drawCharts(){timeline();}
+function drawContextCharts(){
+ if(!state.context)return;
+ const specs=[['effort-chart','apparent_fishing_hours_total','Horas de pesca aparente','#286b8b'],['rate-chart','gaps_per_1000_observed_vessel_days','Gaps por 1.000 días-barco observados','#286b8b'],['sar-chart','sar_unmatched_pct','Detecciones SAR sin AIS (%)','#9b5b29']];
+ for(const [id,field,label,color] of specs){
+  const root=byId(id),width=root.clientWidth;
+  const rows=state.context.monthly.map(d=>({...d,date:new Date(d.month+'-01T00:00:00Z')}));
+  const plot=Plot.plot({width,height:280,marginTop:32,marginLeft:64,marginRight:24,style:{fontFamily:'Montserrat, system-ui',fontSize:'12px'},
+   x:{type:'utc',label:null,ticks:width<600?'2 years':'1 year',tickFormat:'%Y',domain:[new Date('2017-01-01'),new Date('2026-09-01')]},
+   y:{label,zero:true,grid:true,...(field==='sar_unmatched_pct'?{domain:[0,100]}:{})},
+   marks:[Plot.ruleY([0],{stroke:'#b4c3cc'}),Plot.lineY(rows,{x:'date',y:field,stroke:color,strokeWidth:1.8}),Plot.dot(rows.filter(d=>d[field]!=null),{x:'date',y:field,fill:color,r:2,title:d=>d.month+': '+fmt.format(d[field])})]});
+  root.replaceChildren(plot);
+ }
+}
+function drawCharts(){timeline();drawContextCharts();}
 function table(){const body=byId('monthly-table').querySelector('tbody');for(const r of state.data.monthly.filter(r=>r.area==='region'&&!r.partial)){const tr=document.createElement('tr');for(const value of [r.month,fmt.format(r.events),fmt.format(r.vessels),r.medianHours==null?'—':fmt.format(r.medianHours)]){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);}}
-async function start(){try{const responses=await Promise.all([fetch('data/site-data.json'),fetch('vendor/countries-50m.json')]);if(responses.some(r=>!r.ok))throw new Error('No se pudieron cargar los datos');const[data,world]=await Promise.all(responses.map(r=>r.json()));state.data=data;state.land=topojson.feature(world,world.objects.land);await document.fonts.ready;drawMaps();drawCharts();table();setupRegionControls();
+async function start(){try{const responses=await Promise.all([fetch('data/site-data.json'),fetch('vendor/countries-50m.json'),fetch('data/context-analysis.json')]);if(responses.some(r=>!r.ok))throw new Error('No se pudieron cargar los datos');const[data,world,context]=await Promise.all(responses.map(r=>r.json()));state.data=data;state.context=context;state.land=topojson.feature(world,world.objects.land);await document.fonts.ready;drawMaps();drawCharts();table();setupRegionControls();
 byId('period').addEventListener('change',e=>{const val=e.target.value;state.range=val==='all'?[2017,2026]:val.includes('-')?val.split('-').map(Number):[+val,+val];drawMaps();});
 byId('metric').addEventListener('change',drawCharts);
 let timer;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{drawMaps();drawCharts();},150);});

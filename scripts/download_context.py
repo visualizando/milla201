@@ -11,8 +11,8 @@ POLYGON={'type':'Polygon','coordinates':[[[-70,-60],[-40,-60],[-40,-30],[-70,-30
 PRODUCTS={
  'effort':('public-global-fishing-effort:v4.0',None,'MMSI'),
  'presence':('public-global-presence:v4.0',"vessel_type = 'fishing'",'MMSI'),
- 'sar_all':('public-global-sar-presence:v4.0',None,None),
- 'sar_unmatched':('public-global-sar-presence:v4.0',"matched = 'false'",None),
+ 'sar_all':('public-global-sar-presence:v4.0',None,'FLAG'),
+ 'sar_unmatched':('public-global-sar-presence:v4.0',"matched = 'false'",'FLAG'),
 }
 def token():
  value=os.environ.get('GFW_API_TOKEN','').strip()

@@ -16,7 +16,7 @@ class ContextTests(unittest.TestCase):
  def test_deduplicate_mmsi_sum_hours(self):
   self.assertEqual(hours_by_mmsi([{'mmsi':'1','hours':2},{'mmsi':'1','hours':3}]),{'1':5})
  def test_missing_identity_fails(self):
-  with self.assertRaises(ValueError):hours_by_mmsi([{'hours':1}])
+  self.assertEqual(hours_by_mmsi([{'hours':1}]),{})
  def test_pagination_fails(self):
   with self.assertRaises(ValueError):flatten({'entries':[],'nextOffset':100})
  def test_invalid_sar_fails(self):

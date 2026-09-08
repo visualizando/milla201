@@ -1,12 +1,11 @@
-# Próximo análisis: actividad y exposición
+# Próximos cruces
 
-1. Obtener un polígono documentado de ZEE, con versión y tratamiento de áreas disputadas. Reemplazar la caja exploratoria por zonas y franjas comparables.
-2. Descargar `public-global-presence:v4.0` y `public-global-fishing-effort:v4.0` mediante 4Wings para la misma flota, zona y meses.
-3. Calcular pesqueros observados, días-barco y horas de pesca aparente. No usar barcos con gaps como denominador de toda la flota.
-4. Medir gaps por 1.000 días-barco y proporción de flota observada con gaps. Controlar recepción y selección de áreas elegibles para detección.
-5. Separar arte de pesca y bandera con un enlace temporal a Vessel Identity; `fishing` no significa `trawler`.
-6. Contrastar SAR con superficies y pasadas observadas, y desembarques/estadísticas de Prefectura sin asumir que representan la misma población.
+Actualizado: 8 de septiembre de 2026.
 
-Las interrupciones AIS no prueban infracciones. La fecha de un gobierno sirve como referencia; una conclusión causal requiere medidas, comparadores y controles específicos.
+Completados los reportes mensuales de Fishing Effort, Presence de pesqueros y SAR total/sin AIS para 2017–agosto de 2026. Resultados y definiciones en CONTEXT_ANALYSIS.md. Los meses SAR sin registros quedan sin dato.
 
-Fuentes: https://api-doc.globalfishingwatch.org/our-apis/documentation/docs/v3/4wings · https://globalfishingwatch.org/dataset-and-code-fishing-effort/ · https://www.argentina.gob.ar/node/226922
+1. Obtener acceso a `public-global-sar-footprints:v20210924` o descargar las huellas procesadas desde el portal oficial. La API devuelve 403 con el token actual. Calcular superficie por pasada, cobertura común y densidad SAR corregida. No confundir el catálogo completo de Sentinel-1 con las escenas procesadas por GFW.
+2. Obtener un polígono documentado de ZEE, con versión y tratamiento de áreas disputadas. Separar aguas jurisdiccionales y franjas del mar adyacente; la caja actual es exploratoria.
+3. Separar arte de pesca y bandera usando identidad temporal. Revisar qué parte de la variación responde a cambios en la composición de la flota.
+4. Evaluar cambios de recepción y elegibilidad para detectar gaps, incluidos los cambios de fuente de 2026. Las tasas calculadas miden actividad AIS observada, no toda la actividad real.
+5. Contrastar con estadísticas pesqueras y controles documentados sin atribuir causalidad a las fechas de gobierno por sí solas.

@@ -38,3 +38,18 @@ Los CSV del mapa tienen 15 columnas compatibles con el notebook original. Se inc
 Esta edición tiene resultados reales de gaps. Presence, Fishing Effort y SAR están presentados como cruces pendientes, no resultados. La región es una caja, no una ZEE. Toda la serie usa v4.0; no mezcla el archivo histórico de Welch con años recientes. Los conteos de 2026 y el mapa incluyen hasta septiembre 3; las curvas y comparaciones temporales excluyen septiembre por ser parcial.
 
 Referencias y limitaciones están en el sitio y en `research/`. La versión del algoritmo no fija una instantánea inmutable: por eso se conservan páginas y fechas de recuperación.
+
+## Cruces de actividad y SAR
+
+Para reproducir los nuevos indicadores desde los reportes originales:
+
+```
+python scripts/download_context_annual.py
+python scripts/analyze_context.py
+python -m unittest discover -s scripts -p test_context.py
+python scripts/build_site.py
+```
+
+El descargador lee `GFW_API_TOKEN` del entorno o de `.secrets/gfw.env`. Usa 40 reportes anuales con resolución mensual, sin solicitudes concurrentes. Los reportes se conservan en `data/raw/context_annual/`; se generan 116 meses comparables y períodos completos o enero–agosto. SAR se compara hasta junio de 2026 porque no devuelve registros posteriores para la caja.
+
+La cobertura SAR corregida requiere huellas de escenas que el token actual no puede leer (HTTP 403). Esa limitación permanece visible en el micrositio. Ver `research/CONTEXT_ANALYSIS.md`.
