@@ -1,5 +1,11 @@
 # Plan para cuando se renueven los tokens
 
+## Avance del 8 de septiembre de 2026
+
+Acceso verificado. Se calcularon recurrencia por MMSI y año, banderas en los eventos, extremos de gaps dentro del polígono 8466 y presencia mensual en esa ZEE para 2017–agosto de 2026. Se consultaron registros de identidad para los 20 MMSI con más gaps. Resultados, límites y comandos en [FLEET_RESULTS.md](FLEET_RESULTS.md).
+
+Siguen pendientes las trayectorias para contar entradas concretas, la resolución histórica de identidades, ampliar tipos/tamaños al resto de la flota, visitas a puerto y encuentros. La presencia mensual no reemplaza los eventos de entrada y salida. No se ha confirmado ninguna infracción con estos cruces.
+
 ## 1. Verificar acceso
 
 - Probar `GFW_API_TOKEN` contra `public-global-vessel-identity:v4.0`.
