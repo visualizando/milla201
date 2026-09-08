@@ -18,17 +18,17 @@ function canvasMap(id,regional=false){
  ctx.fillStyle='#d3e7fa';ctx.beginPath();path({type:'Sphere'});ctx.fill();
 
  // Aggregate in projected screen cells. Fixed color domain keeps periods comparable as counts.
- const bins=new Map(),size=regional?4:3;
+ const bins=new Map(),size=(regional?2:0.8)*width/928;
  if(regional){for(const [year,lon,lat] of state.data.regional){if(!(state.regionYear===null||year===state.regionYear))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+1);}}
- else{for(const [year,lon,lat,n] of state.data.cells){if(!within(year))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+n);}}
+ else{for(const [year,lon,lat] of state.data.positions){if(!within(year))continue;const p=projection([lon,lat]);if(!p)continue;const key=`${Math.floor(p[0]/size)},${Math.floor(p[1]/size)}`;bins.set(key,(bins.get(key)||0)+1);}}
  const color=d3.scaleLog().domain([0.25,5,21,100]).range(['#d3e7fa','#5784c5','#fc004b','#ffec44']).clamp(true);
- for(const [key,n]of bins){const[x,y]=key.split(',').map(Number);ctx.fillStyle=color(n);ctx.fillRect(x*size,y*size,size+0.3,size+0.3);}
+ for(const [key,n]of bins){const[x,y]=key.split(',').map(Number);ctx.fillStyle=color(n);ctx.fillRect(x*size,y*size,size,size);}
  ctx.fillStyle='#ffffff';ctx.beginPath();path(state.land);ctx.fill();
  if(!regional){ctx.strokeStyle='#5784c5';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();path(bbox);ctx.stroke();ctx.setLineDash([]);}
  else{ctx.fillStyle='#466575';ctx.font='12px Montserrat, system-ui';for(const[label,lon,lat]of[['ARGENTINA',-65,-41],['URUGUAY',-56,-33],['ATLÁNTICO SUR',-49,-46]]){const p=projection([lon,lat]);ctx.fillText(label,p[0],p[1]);}}
  root.replaceChildren(canvas);
 }
-function drawMaps(){canvasMap('global-map');drawRegion();byId('global-count').textContent=fmt.format(d3.sum(state.data.cells.filter(c=>within(c[0])),c=>c[3]));}
+function drawMaps(){canvasMap('global-map');drawRegion();byId('global-count').textContent=fmt.format(state.data.positions.filter(c=>within(c[0])).length);}
 function drawRegion(){
  canvasMap('region-map',true);
  byId('region-count').textContent=fmt.format(state.data.regional.filter(c=>state.regionYear===null||c[0]===state.regionYear).length);

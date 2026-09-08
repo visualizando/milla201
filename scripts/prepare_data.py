@@ -38,7 +38,7 @@ def prepare(source):
         'dataset':'public-global-gaps-events:v4.0','total':len(rows),'regionalTotal':len(region),
         'bbox':[-70,-60,-40,-30], 'monthly':monthly,
         'flags':[{'flag':k,'events':v} for k,v in flags.most_common()],
-        'cells':[[y,x,lat,n] for (y,x,lat),n in cells.items()],
+        'positions':[[int(r['gap_start_timestamp'][:4]),float(r['gap_start_lon']),float(r['gap_start_lat'])] for r in rows],
         'regional':[[int(r['gap_start_timestamp'][:4]),round(float(r['gap_start_lon']),4),round(float(r['gap_start_lat']),4)] for r in region]}
     (target/'site-data.json').write_text(json.dumps(result,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
     with gzip.open(target/'ais_disabling_events_2017_2026.csv.gz','wb') as f:
